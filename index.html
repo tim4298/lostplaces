@@ -590,7 +590,7 @@ async function doAuth() {
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('appWrapper').style.display = 'flex';
     document.getElementById('headerUsername').textContent = username;
-    loadPlacesFromFirebase();
+    setTimeout(() => { map.invalidateSize(true); loadPlacesFromFirebase(); }, 300);
   } catch(e) {
     const msgs = {
       'Invalid login credentials': 'Benutzername oder Passwort falsch.',
@@ -986,7 +986,7 @@ window.addEventListener('load', () => { setTimeout(() => { if (document.getEleme
         document.getElementById('appWrapper').style.display = 'flex';
         document.getElementById('headerUsername').textContent = window._currentUser.username;
         document.getElementById('loadingOverlay').style.display = 'none';
-        setTimeout(() => loadPlacesFromFirebase(), 100);
+        setTimeout(() => { map.invalidateSize(true); loadPlacesFromFirebase(); }, 300);
       } else {
         document.getElementById('authScreen').style.display = 'flex';
         document.getElementById('loadingOverlay').style.display = 'none';
