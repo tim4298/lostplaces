@@ -30,7 +30,7 @@
   --gold:    #c8a96e;
 }
 
-html, body { height: 100%; overflow: hidden; }
+html, body { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
 body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
 
 /* ── AUTH SCREEN ── */
@@ -91,7 +91,7 @@ body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--te
 }
 
 /* ── APP WRAPPER ── */
-#appWrapper { display: none; flex-direction: column; height: 100%; }
+#appWrapper { display: none; flex-direction: column; flex: 1; min-height: 0; }
 
 header {
   display: flex; align-items: center; justify-content: space-between;
@@ -141,7 +141,7 @@ header {
 .btn-add:active { transform: translateY(0); }
 .btn-menu-toggle { display: none; background: var(--panel); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; font-size: 18px; cursor: pointer; line-height: 1; }
 
-.app { display: flex; flex: 1; overflow: hidden; }
+.app { display: flex; flex: 1; overflow: hidden; min-height: 0; }
 
 /* ── SIDEBAR ── */
 .sidebar { width: 300px; flex-shrink: 0; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; transition: transform 0.3s ease; }
@@ -304,6 +304,7 @@ header {
   z-index: 8000; flex-direction: column; gap: 16px;
   font-family: 'Bebas Neue', cursive; letter-spacing: 3px; color: var(--muted); font-size: 14px;
 }
+body { margin: 0; }
 .loading-spinner {
   width: 36px; height: 36px; border: 3px solid var(--border);
   border-top-color: var(--accent); border-radius: 50%;
@@ -371,7 +372,7 @@ header {
 </div>
 
 <!-- App -->
-<div id="appWrapper" style="display:none; flex-direction:column; height:100%;">
+<div id="appWrapper" style="display:none; flex-direction:column; flex:1; min-height:0;">
 
 <header>
   <div class="logo">LOST<span>PLACES</span></div>
@@ -412,7 +413,7 @@ header {
     </div>
   </aside>
 
-  <div style="position:relative; flex:1; overflow:hidden;">
+  <div style="position:relative; flex:1; overflow:hidden; min-height:0;">
     <div id="map"></div>
     <div class="map-hint" id="mapHint" style="opacity:0;">–</div>
     <div class="pick-overlay" id="pickOverlay">📍 Auf die Karte klicken um Standort zu setzen — ESC zum Abbrechen</div>
