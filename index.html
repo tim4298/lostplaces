@@ -13,12 +13,12 @@
   <!-- Firebase -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
     import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
 
-    // ── HIER KOMMT DEIN FIREBASE CONFIG KEY REIN ──
+    const FIREBASE_API_KEY = "AIzaSyASHyW7AlWo0h0CuSI7jYLoP_IcQbOz8Oc";
+
     const firebaseConfig = {
-      apiKey: "AIzaSyASHyW7AlWo0h0CuSI7jYLoP_IcQbOz8Oc",
+      apiKey: FIREBASE_API_KEY,
       authDomain: "lostplaces-f0f94.firebaseapp.com",
       projectId: "lostplaces-f0f94",
       storageBucket: "lostplaces-f0f94.firebasestorage.app",
@@ -26,26 +26,45 @@
       appId: "1:189451536416:web:34888d028c3784cd9c1445"
     };
 
-    const app  = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    auth.settings.appVerificationDisabledForTesting = true;
-    const db   = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
 
-    window._fb = { auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, collection, doc, setDoc, getDocs, deleteDoc };
+    async function restSignUp(email, password) {
+      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      });
+      const data = await res.json();
+      if (data.error) throw { code: data.error.message };
+      return data;
+    }
 
-    onAuthStateChanged(auth, user => {
-      if (user) {
-        window._currentUser = user;
-        document.getElementById('authScreen').style.display = 'none';
-        document.getElementById('appWrapper').style.display = 'flex';
-        document.getElementById('headerUsername').textContent = user.email.split('@')[0];
-        loadPlacesFromFirebase();
-      } else {
-        window._currentUser = null;
-        document.getElementById('authScreen').style.display = 'flex';
-        document.getElementById('appWrapper').style.display = 'none';
-      }
-    });
+    async function restSignIn(email, password) {
+      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      });
+      const data = await res.json();
+      if (data.error) throw { code: data.error.message };
+      return data;
+    }
+
+    window._fb = { db, collection, doc, setDoc, getDocs, deleteDoc, restSignUp, restSignIn };
+
+    const savedUser = localStorage.getItem('lp_user');
+    if (savedUser) {
+      window._currentUser = JSON.parse(savedUser);
+      document.getElementById('authScreen').style.display = 'none';
+      document.getElementById('appWrapper').style.display = 'flex';
+      document.getElementById('headerUsername').textContent = window._currentUser.username;
+      document.getElementById('loadingOverlay').style.display = 'none';
+      setTimeout(() => loadPlacesFromFirebase(), 100);
+    } else {
+      document.getElementById('authScreen').style.display = 'flex';
+      document.getElementById('loadingOverlay').style.display = 'none';
+    }
   </script>
   <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -607,36 +626,45 @@ async function doAuth() {
   const password = document.getElementById('authPassword').value;
   if (!username) { setAuthError('Bitte einen Benutzernamen eingeben.'); return; }
   if (password.length < 6) { setAuthError('Passwort muss mindestens 6 Zeichen haben.'); return; }
-  const email = username + '@gmail.com';
+  const email = username + '@lostplaces.local';
   setAuthError('');
   document.getElementById('authSubmitBtn').textContent = '…';
   try {
     const fb = window._fb;
+    let result;
     if (authMode === 'login') {
-      await fb.signInWithEmailAndPassword(fb.auth, email, password);
+      result = await fb.restSignIn(email, password);
     } else {
-      await fb.createUserWithEmailAndPassword(fb.auth, email, password);
+      result = await fb.restSignUp(email, password);
     }
+    window._currentUser = { uid: result.localId, username, email, token: result.idToken };
+    localStorage.setItem('lp_user', JSON.stringify(window._currentUser));
+    document.getElementById('authScreen').style.display = 'none';
+    document.getElementById('appWrapper').style.display = 'flex';
+    document.getElementById('headerUsername').textContent = username;
+    loadPlacesFromFirebase();
   } catch(e) {
     const msgs = {
-      'auth/user-not-found':    'Kein Account mit diesem Benutzernamen gefunden.',
-      'auth/wrong-password':    'Falsches Passwort.',
-      'auth/email-already-in-use': 'Dieser Benutzername ist bereits vergeben.',
-      'auth/invalid-email':     'Ungültiger Benutzername.',
-      'auth/weak-password':     'Passwort zu schwach (min. 6 Zeichen).',
-      'auth/invalid-credential':'Benutzername oder Passwort falsch.',
+      'EMAIL_NOT_FOUND':    'Kein Account mit diesem Benutzernamen gefunden.',
+      'INVALID_PASSWORD':   'Falsches Passwort.',
+      'EMAIL_EXISTS':       'Dieser Benutzername ist bereits vergeben.',
+      'WEAK_PASSWORD : Password should be at least 6 characters': 'Passwort zu schwach (min. 6 Zeichen).',
+      'INVALID_LOGIN_CREDENTIALS': 'Benutzername oder Passwort falsch.',
     };
-    setAuthError(msgs[e.code] || 'Fehler: ' + e.message);
+    setAuthError(msgs[e.code] || 'Fehler: ' + JSON.stringify(e.code));
     document.getElementById('authSubmitBtn').textContent = authMode === 'login' ? 'Anmelden' : 'Account erstellen';
   }
 }
 
 async function doLogout() {
   if (!confirm('Wirklich abmelden?')) return;
+  localStorage.removeItem('lp_user');
+  window._currentUser = null;
   clearMap();
   places = [];
   renderSidebar();
-  await window._fb.signOut(window._fb.auth);
+  document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('appWrapper').style.display = 'none';
 }
 
 // ── FIREBASE DATA ──
