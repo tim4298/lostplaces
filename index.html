@@ -11,60 +11,28 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
   <!-- Firebase -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://umdsgbyllgvgirtgsfxl.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_tf1CqZVHfGQ2fy-yD4v_dQ_hNL0Iqr4';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window._sb = _supabase;
 
-    const FIREBASE_API_KEY = "AIzaSyASHyW7AlWo0h0CuSI7jYLoP_IcQbOz8Oc";
-
-    const firebaseConfig = {
-      apiKey: FIREBASE_API_KEY,
-      authDomain: "lostplaces-f0f94.firebaseapp.com",
-      projectId: "lostplaces-f0f94",
-      storageBucket: "lostplaces-f0f94.firebasestorage.app",
-      messagingSenderId: "189451536416",
-      appId: "1:189451536416:web:34888d028c3784cd9c1445"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db  = getFirestore(app);
-
-    async function restSignUp(email, password) {
-      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, returnSecureToken: true })
-      });
-      const data = await res.json();
-      if (data.error) throw { code: data.error.message };
-      return data;
+    async function initAuth() {
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (session) {
+        window._currentUser = { uid: session.user.id, username: session.user.user_metadata.username || session.user.email.split('@')[0], email: session.user.email };
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('appWrapper').style.display = 'flex';
+        document.getElementById('headerUsername').textContent = window._currentUser.username;
+        document.getElementById('loadingOverlay').style.display = 'none';
+        setTimeout(() => loadPlacesFromFirebase(), 100);
+      } else {
+        document.getElementById('authScreen').style.display = 'flex';
+        document.getElementById('loadingOverlay').style.display = 'none';
+      }
     }
-
-    async function restSignIn(email, password) {
-      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${FIREBASE_API_KEY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, returnSecureToken: true })
-      });
-      const data = await res.json();
-      if (data.error) throw { code: data.error.message };
-      return data;
-    }
-
-    window._fb = { db, collection, doc, setDoc, getDocs, deleteDoc, restSignUp, restSignIn };
-
-    const savedUser = localStorage.getItem('lp_user');
-    if (savedUser) {
-      window._currentUser = JSON.parse(savedUser);
-      document.getElementById('authScreen').style.display = 'none';
-      document.getElementById('appWrapper').style.display = 'flex';
-      document.getElementById('headerUsername').textContent = window._currentUser.username;
-      document.getElementById('loadingOverlay').style.display = 'none';
-      setTimeout(() => loadPlacesFromFirebase(), 100);
-    } else {
-      document.getElementById('authScreen').style.display = 'flex';
-      document.getElementById('loadingOverlay').style.display = 'none';
-    }
+    initAuth();
   </script>
   <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -626,39 +594,37 @@ async function doAuth() {
   const password = document.getElementById('authPassword').value;
   if (!username) { setAuthError('Bitte einen Benutzernamen eingeben.'); return; }
   if (password.length < 6) { setAuthError('Passwort muss mindestens 6 Zeichen haben.'); return; }
-  const email = username + '@example.com';
+  const email = username + '@lostplaces.app';
   setAuthError('');
   document.getElementById('authSubmitBtn').textContent = '…';
   try {
-    const fb = window._fb;
     let result;
     if (authMode === 'login') {
-      result = await fb.restSignIn(email, password);
+      result = await window._sb.auth.signInWithPassword({ email, password });
     } else {
-      result = await fb.restSignUp(email, password);
+      result = await window._sb.auth.signUp({ email, password, options: { data: { username } } });
     }
-    window._currentUser = { uid: result.localId, username, email, token: result.idToken };
-    localStorage.setItem('lp_user', JSON.stringify(window._currentUser));
+    if (result.error) throw result.error;
+    const user = result.data.user;
+    window._currentUser = { uid: user.id, username, email };
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('appWrapper').style.display = 'flex';
     document.getElementById('headerUsername').textContent = username;
     loadPlacesFromFirebase();
   } catch(e) {
     const msgs = {
-      'EMAIL_NOT_FOUND':    'Kein Account mit diesem Benutzernamen gefunden.',
-      'INVALID_PASSWORD':   'Falsches Passwort.',
-      'EMAIL_EXISTS':       'Dieser Benutzername ist bereits vergeben.',
-      'WEAK_PASSWORD : Password should be at least 6 characters': 'Passwort zu schwach (min. 6 Zeichen).',
-      'INVALID_LOGIN_CREDENTIALS': 'Benutzername oder Passwort falsch.',
+      'Invalid login credentials': 'Benutzername oder Passwort falsch.',
+      'User already registered': 'Dieser Benutzername ist bereits vergeben.',
+      'Password should be at least 6 characters': 'Passwort zu schwach (min. 6 Zeichen).',
     };
-    setAuthError(msgs[e.code] || 'Fehler: ' + JSON.stringify(e.code));
+    setAuthError(msgs[e.message] || 'Fehler: ' + e.message);
     document.getElementById('authSubmitBtn').textContent = authMode === 'login' ? 'Anmelden' : 'Account erstellen';
   }
 }
 
 async function doLogout() {
   if (!confirm('Wirklich abmelden?')) return;
-  localStorage.removeItem('lp_user');
+  await window._sb.auth.signOut();
   window._currentUser = null;
   clearMap();
   places = [];
@@ -667,16 +633,20 @@ async function doLogout() {
   document.getElementById('appWrapper').style.display = 'none';
 }
 
-// ── FIREBASE DATA ──
+// ── SUPABASE DATA ──
 async function loadPlacesFromFirebase() {
   showLoading(true);
   try {
-    const fb = window._fb;
     const uid = window._currentUser.uid;
-    const snap = await fb.getDocs(fb.collection(fb.db, 'users', uid, 'places'));
+    const { data, error } = await window._sb.from('places').select('*').eq('user_id', uid);
+    if (error) throw error;
     places = [];
     clearMap();
-    snap.forEach(d => places.push(d.data()));
+    (data || []).forEach(row => {
+      const p = row.data;
+      p.id = row.place_id;
+      places.push(p);
+    });
     places.forEach(p => addMarker(p));
     renderSidebar();
   } catch(e) {
@@ -686,15 +656,13 @@ async function loadPlacesFromFirebase() {
 }
 
 async function savePlaceToFirebase(place) {
-  const fb = window._fb;
   const uid = window._currentUser.uid;
-  await fb.setDoc(fb.doc(fb.db, 'users', uid, 'places', place.id), place);
+  await window._sb.from('places').upsert({ place_id: place.id, user_id: uid, data: place }, { onConflict: 'place_id' });
 }
 
 async function deletePlaceFromFirebase(id) {
-  const fb = window._fb;
   const uid = window._currentUser.uid;
-  await fb.deleteDoc(fb.doc(fb.db, 'users', uid, 'places', id));
+  await window._sb.from('places').delete().eq('place_id', id).eq('user_id', uid);
 }
 
 function showLoading(on) {
