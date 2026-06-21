@@ -32,7 +32,7 @@
         document.getElementById('loadingOverlay').style.display = 'none';
       }
     }
-    initAuth();
+    document.addEventListener('DOMContentLoaded', initAuth);
   </script>
   <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
