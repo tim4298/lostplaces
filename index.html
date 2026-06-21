@@ -11,29 +11,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
   <!-- Firebase -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const SUPABASE_URL = 'https://umdsgbyllgvgirtgsfxl.supabase.co';
-    const SUPABASE_KEY = 'sb_publishable_tf1CqZVHfGQ2fy-yD4v_dQ_hNL0Iqr4';
-    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-    window._sb = _supabase;
 
-    async function initAuth() {
-      const { data: { session } } = await _supabase.auth.getSession();
-      if (session) {
-        window._currentUser = { uid: session.user.id, username: session.user.user_metadata.username || session.user.email.split('@')[0], email: session.user.email };
-        document.getElementById('authScreen').style.display = 'none';
-        document.getElementById('appWrapper').style.display = 'flex';
-        document.getElementById('headerUsername').textContent = window._currentUser.username;
-        document.getElementById('loadingOverlay').style.display = 'none';
-        setTimeout(() => loadPlacesFromFirebase(), 100);
-      } else {
-        document.getElementById('authScreen').style.display = 'flex';
-        document.getElementById('loadingOverlay').style.display = 'none';
-      }
-    }
-    document.addEventListener('DOMContentLoaded', initAuth);
-  </script>
   <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -990,5 +968,28 @@ document.getElementById('modalBackdrop').addEventListener('click', e => { if (e.
 // Hide loading once Firebase is ready (handled by onAuthStateChanged)
 window.addEventListener('load', () => { setTimeout(() => { if (document.getElementById('loadingOverlay').style.display !== 'none') showLoading(false); }, 3000); });
 </script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://umdsgbyllgvgirtgsfxl.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_tf1CqZVHfGQ2fy-yD4v_dQ_hNL0Iqr4';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    window._sb = _supabase;
+
+    async function initAuth() {
+      const { data: { session } } = await _supabase.auth.getSession();
+      if (session) {
+        window._currentUser = { uid: session.user.id, username: session.user.user_metadata.username || session.user.email.split('@')[0], email: session.user.email };
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('appWrapper').style.display = 'flex';
+        document.getElementById('headerUsername').textContent = window._currentUser.username;
+        document.getElementById('loadingOverlay').style.display = 'none';
+        setTimeout(() => loadPlacesFromFirebase(), 100);
+      } else {
+        document.getElementById('authScreen').style.display = 'flex';
+        document.getElementById('loadingOverlay').style.display = 'none';
+      }
+    }
+    initAuth();
+  </script>
 </body>
 </html>
