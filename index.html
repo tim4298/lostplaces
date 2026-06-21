@@ -30,7 +30,8 @@
   --gold:    #c8a96e;
 }
 
-html, body { height: 100%; overflow: hidden; display: flex; flex-direction: column; }
+html, body { height: 100%; overflow: hidden; }
+body { display: flex; flex-direction: column; margin: 0; }
 body { font-family: 'Barlow', sans-serif; background: var(--bg); color: var(--text); display: flex; flex-direction: column; }
 
 /* ── AUTH SCREEN ── */
@@ -179,7 +180,7 @@ header {
 .empty-add-link:hover { border-bottom-color: var(--accent); text-decoration: underline; }
 
 /* ── MAP ── */
-#map { width: 100%; height: 100%; background: #111; }
+#map { width: 100%; height: 100%; min-height: 0; background: #111; }
 #map.picking-location { cursor: crosshair !important; }
 .leaflet-tile { filter: brightness(0.9); }
 
@@ -964,6 +965,7 @@ function escHtml(str) { return String(str).replace(/&/g,'&amp;').replace(/</g,'&
 function showHint(msg) { const h = document.getElementById('mapHint'); h.textContent = msg; h.style.opacity = '1'; clearTimeout(h._t); h._t = setTimeout(() => { h.style.opacity = '0'; }, 2500); }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { if (pickingMode) { stopPickingLocation(); return; } closeModal(); closeLightbox(); } });
+window.addEventListener('resize', () => { map.invalidateSize(); });
 document.getElementById('modalBackdrop').addEventListener('click', e => { if (e.target === document.getElementById('modalBackdrop')) closeModal(); });
 
 // Hide loading once Firebase is ready (handled by onAuthStateChanged)
