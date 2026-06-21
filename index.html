@@ -606,7 +606,7 @@ async function doAuth() {
   const password = document.getElementById('authPassword').value;
   if (!username) { setAuthError('Bitte einen Benutzernamen eingeben.'); return; }
   if (password.length < 6) { setAuthError('Passwort muss mindestens 6 Zeichen haben.'); return; }
-  const email = username + '@lostplaces.app';
+  const email = username + '@lostplaces-app.firebaseapp.com';
   setAuthError('');
   document.getElementById('authSubmitBtn').textContent = '…';
   try {
