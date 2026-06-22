@@ -674,7 +674,7 @@ const LAYERS = {
   satellite: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { attribution: '© Esri World Imagery', maxZoom: 19 })
 };
 
-const map = L.map('map', { center: [50, 14], zoom: 5, zoomControl: false, layers: [LAYERS.street] });
+const map = L.map('map', { center: [50, 14], zoom: 5, zoomControl: false, layers: [LAYERS.street], minZoom: 3, maxBounds: [[-85, -180], [85, 180]], maxBoundsViscosity: 1.0 });
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 let currentLayer = 'street';
 
