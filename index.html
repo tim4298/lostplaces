@@ -623,12 +623,12 @@ async function loadPlacesFromFirebase() {
     places = [];
     clearMap();
     (data || []).forEach(row => {
-      const p = row.data;
-      p.id = row.place_id;
+      const p = { ...row.data, id: row.place_id };
       places.push(p);
     });
     places.forEach(p => addMarker(p));
     renderSidebar();
+    console.log('Geladen:', places.length, 'Orte');
   } catch(e) {
     console.error('Laden fehlgeschlagen:', e);
   }
@@ -637,12 +637,18 @@ async function loadPlacesFromFirebase() {
 
 async function savePlaceToFirebase(place) {
   const uid = window._currentUser.uid;
-  await window._sb.from('places').upsert({ place_id: place.id, user_id: uid, data: place }, { onConflict: 'place_id' });
+  const { error } = await window._sb.from('places').upsert(
+    { place_id: place.id, user_id: uid, data: place },
+    { onConflict: 'place_id' }
+  );
+  if (error) console.error('Speichern fehlgeschlagen:', error);
+  else console.log('Gespeichert:', place.name);
 }
 
 async function deletePlaceFromFirebase(id) {
   const uid = window._currentUser.uid;
-  await window._sb.from('places').delete().eq('place_id', id).eq('user_id', uid);
+  const { error } = await window._sb.from('places').delete().eq('place_id', id).eq('user_id', uid);
+  if (error) console.error('Löschen fehlgeschlagen:', error);
 }
 
 function showLoading(on) {
